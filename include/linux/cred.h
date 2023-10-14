@@ -63,6 +63,7 @@ do {							\
 } while (0)
 
 extern struct group_info *groups_alloc(int);
+extern void groups_sort(struct group_info *);
 extern struct group_info init_groups;
 extern void groups_free(struct group_info *);
 extern int set_current_groups(struct group_info *);
