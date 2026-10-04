@@ -1576,7 +1576,7 @@ static bool sec_bat_check_recharge(struct sec_battery_info *battery)
 			/* float voltage - 150mV */
 			recharging_voltage =\
 				(battery->pdata->chg_float_voltage /\
-				battery->pdata->chg_float_voltage_conv) - 150;
+				battery->pdata->chg_float_voltage_conv) - battery->pdata->swelling_low_rechg_voltage_offset;
 			dev_info(battery->dev, "%s: recharging voltage changed by low temp(%d)\n",
 					__func__, recharging_voltage);
 		}
@@ -7538,7 +7538,10 @@ static int make_pd_list(struct sec_battery_info *battery)
 	bool voltage_flag;
 	int pd_list_index = 0;
 
-	pdo_power_limit = battery->base_charge_power * 1000;
+	pdo_power_limit = (battery->current_event & SEC_BAT_CURRENT_EVENT_HV_DISABLE) ?
+			SEC_INPUT_VOLTAGE_5V * battery->pdata->default_input_current * 1000:
+			battery->base_charge_power * 1000;
+
 	selected_pdo_num = 0;
 	for (i=1; i<= battery->pdic_info.sink_status.available_pdo_num; i++)
 	{
@@ -9043,6 +9046,12 @@ static int sec_bat_parse_dt(struct device *dev,
 		(unsigned int *)&pdata->swelling_normal_float_voltage);
 	if (ret)
 		pr_info("%s: chg_float_voltage is Empty\n", __func__);
+
+	ret = of_property_read_u32(np, "battery,swelling_low_rechg_voltage_offset",
+		(unsigned int *)&pdata->swelling_low_rechg_voltage_offset);
+	if(ret) {
+		pdata->swelling_low_rechg_voltage_offset = 150;
+	}
 
 	ret = of_property_read_u32(np, "battery,swelling_high_temp_block",
 				   &temp);

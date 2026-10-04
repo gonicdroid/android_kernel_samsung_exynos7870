@@ -14,16 +14,26 @@
 
 #include "dsms_debug.h"
 
-#ifdef DSMS_DEBUG_ENABLE
+#define LOG_LINE_MAX 1008 /* to not exceed the frame size, 1024 */
 
-#define MAX_ALLOWED_DETAIL_LENGTH 1024
-
-void dsms_debug_message(const char *feature_code, const char *detail,
-	int64_t value)
+void dsms_log_write(int loglevel, const char* format, ...)
 {
-	size_t len = strnlen(detail, MAX_ALLOWED_DETAIL_LENGTH);
-	printk(DSMS_DEBUG_TAG "{'%s', '%s' (%zu bytes), %lld}", feature_code,
-		detail, len, value);
-}
+	va_list ap;
+	char log[LOG_LINE_MAX];
 
-#endif //DSMS_DEBUG_ENABLE
+	va_start(ap, format);
+	vsnprintf(log, sizeof(log), format, ap);
+
+	switch (loglevel) {
+	case LOG_ERROR:
+		pr_err(DSMS_TAG "%s", log);
+		break;
+	case LOG_DEBUG:
+		pr_debug(DSMS_TAG "%s", log);
+		break;
+	default: /* LOG_INFO or others */
+		pr_info(DSMS_TAG "%s", log);
+		break;
+	}
+	va_end(ap);
+}

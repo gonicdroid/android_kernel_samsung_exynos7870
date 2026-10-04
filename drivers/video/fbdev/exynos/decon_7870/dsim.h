@@ -55,10 +55,6 @@
 extern struct dsim_device *dsim0_for_decon;
 extern struct dsim_device *dsim1_for_decon;
 
-#define PANEL_STATE_SUSPENED	0
-#define PANEL_STATE_RESUMED		1
-#define PANEL_STATE_SUSPENDING	2
-
 
 enum mipi_dsim_pktgo_state {
 	DSIM_PKTGO_DISABLED,
@@ -160,6 +156,9 @@ struct mipi_dsim_lcd_driver {
 	int	(*resume_early)(struct dsim_device *dsim);
 	int	(*resume)(struct dsim_device *dsim);
 	int	(*dump)(struct dsim_device *dsim);
+#if defined(CONFIG_LOGGING_BIGDATA_BUG)
+	unsigned int (*get_buginfo)(struct dsim_device *dsim);
+#endif
 #ifdef CONFIG_LCD_DOZE_MODE
 	int	(*enteralpm)(struct dsim_device *dsim);
 	int	(*exitalpm)(struct dsim_device *dsim);

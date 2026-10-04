@@ -98,5 +98,9 @@ config MODEM_IF_QOS
 	depends on LINK_DEVICE_SHMEM
 	default n
 
+config KLAT
+	bool "kernel CLAT"
+	default n
+
 endmenu
 endif

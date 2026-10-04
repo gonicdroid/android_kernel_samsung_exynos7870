@@ -9,15 +9,14 @@
 #ifndef _DSMS_DEBUG_H
 #define _DSMS_DEBUG_H
 
-#define DSMS_TAG		"[DSMS-KERNEL] "
-#define DSMS_DEBUG_TAG	"[DSMS-KERNEL] DEBUG: "
+#define DSMS_TAG "[DSMS-KERNEL] "
 
-#ifdef DSMS_DEBUG_ENABLE
+enum loglevel {
+	LOG_INFO,
+	LOG_ERROR,
+	LOG_DEBUG,
+};
 
-extern void dsms_debug_message(const char *feature_code,
-		const char *detail,
-		int64_t value);
-
-#endif //DSMS_DEBUG_ENABLE
+extern void dsms_log_write(int loglevel, const char* format, ...);
 
 #endif /* _DSMS_DEBUG_H */
