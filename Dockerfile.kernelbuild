@@ -1,0 +1,54 @@
+FROM ubuntu:18.04
+
+LABEL description="Samsung Exynos7870 kernel build environment"
+LABEL kernel="Linux 3.18.140"
+LABEL toolchain="Linaro GCC 7.5 (github.com/rokibhasansagar/linaro-toolchain-latest)"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# ── Host build dependencies ───────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y \
+    bc \
+    bison \
+    build-essential \
+    curl \
+    flex \
+    git \
+    kmod \
+    libelf-dev \
+    libssl-dev \
+    lzop \
+    make \
+    python3 \
+    wget \
+    xz-utils \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Cross-compiler: Linaro GCC 7.5 (aarch64-linux-gnu) ───────────────────────
+# branch latest-7 = gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
+RUN git clone --depth=1 \
+    -b latest-7 \
+    https://github.com/rokibhasansagar/linaro-toolchain-latest.git \
+    /opt/gcc-linaro-7.5
+
+# ── Environment ───────────────────────────────────────────────────────────────
+ENV PATH="/opt/gcc-linaro-7.5/bin:${PATH}"
+ENV CROSS_COMPILE=/opt/gcc-linaro-7.5/bin/aarch64-linux-gnu-
+ENV ARCH=arm64
+ENV ANDROID_MAJOR_VERSION=o
+ENV ANDROID_PLATFORM_VERSION=8.1.0
+
+WORKDIR /kernel
+
+# ── Default command: build the kernel ────────────────────────────────────────
+# The kernel source must be bind-mounted to /kernel.
+# Produces:  /kernel/out/arch/arm64/boot/Image.gz-dtb
+#            /kernel/out/arch/arm64/boot/dtb.img
+CMD bash -c "\
+    echo '==> Toolchain: $(aarch64-linux-gnu-gcc --version | head -1)' && \
+    make O=out ARCH=arm64 exynos7870-j7xelte_defconfig && \
+    make O=out ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} \
+         -j\$(nproc) Image.gz-dtb dtb.img 2>&1 | tee out/build.log && \
+    echo '==> Done!' && \
+    ls -lh out/arch/arm64/boot/Image.gz-dtb out/arch/arm64/boot/dtb.img 2>/dev/null"
