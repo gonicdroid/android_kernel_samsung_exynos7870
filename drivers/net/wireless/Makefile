@@ -71,7 +71,7 @@ endif
 endif
 
 ifneq ($(CONFIG_BCM4343),)
-ifeq ($(shell expr $(MAJOR_VERSION) \>= 9),1)
+ifeq ($(shell expr $(MAJOR_VERSION) \>= 8),1)
 $(warning platform version 3 : $(PLATFORM_VERSION))
 $(warning MAJOR_VERSION version 3: $(MAJOR_VERSION))
 obj-$(CONFIG_BCM4343)   += bcmdhd_100_15/
