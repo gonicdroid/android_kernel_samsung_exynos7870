@@ -21,6 +21,7 @@
 		PIN_IN(gpa1-3, NONE, LV1);	/* COVER_INT */
 		PIN_IN(gpa1-4, DOWN, LV1);	/* NC */
 		PIN_IN(gpa1-5, DOWN, LV1);	/* NC */
+		PIN_IN(gpa1-7, DOWN, LV1);	/* NC */
 		PIN_IN(gpq0-1, DOWN, LV1);	/* NC */
 	};
 
@@ -81,7 +82,7 @@
 	pinctrl-0 = <&sleep3>;
 	sleep3: sleep-state {
 		PIN_SLP(gpr0-1, OUT1, NONE);	/* EMMC_CMD */
-		PIN_SLP(gpr2-1, OUT0, NONE);	/* WLAN_CMD */
+		PIN_SLP(gpr2-1, OUT1, NONE);	/* WLAN_CMD */
 	};
 };
 
@@ -115,11 +116,11 @@
 	pinctrl-1 = <&sleep6>;
 	initial6: initial-state {
 		PIN_IN(gpc0-1, DOWN, LV1);	/* NC */
-		PIN_OUT_SET_PULL(gpc0-2, 0, LV1, DOWN);	/* VTCAM_CORE_EN */
+		PIN_IN(gpc0-2, NONE, LV1);	/* NFC_DET */
 		PIN_OUT_SET_PULL(gpd1-2, 0, LV1, DOWN);	/* VTCAM_A2P8_EN */
 
 		PIN_OUT_SET(gpd1-3, 1, LV1);	/* IFPMIC_MRSTB  */
-		PIN_IN(gpd1-5, DOWN, LV1);	/* TDMB_FM_SW_SEL */
+		PIN_IN(gpd1-5, DOWN, LV1);	/* NC */
 		PIN_IN(gpd1-6, NONE, LV1);	/* HW_REV3 */
 
 		PIN_OUT_SET(gpd2-3, 1, LV1);	/* RGB_PROXY_EN */
@@ -127,7 +128,7 @@
 		PIN_IN(gpd2-5, NONE, LV1);	/* HW_REV1 */
 
 		PIN_IN(gpd3-0, NONE, LV1);	/* HW_REV2 */
-		PIN_IN(gpd3-1, DOWN, LV1);	/* OCTA_ID(TP) */
+		PIN_IN(gpd3-1, DOWN, LV1);	/* NC */
 		PIN_OUT_SET_PULL(gpd3-2, 0, LV1, DOWN);	/* CAM_FLASH_EN */
 		PIN_OUT_SET_PULL(gpd3-3, 0, LV1, DOWN);	/* CAM_TORCH_EN */
 
@@ -135,8 +136,9 @@
 		PIN_IN(gpc6-2, DOWN, LV1);	/* NC  */
 		PIN_IN(gpc6-3, DOWN, LV1);	/* NC  */
 
-		PIN_IN(gpd2-0, DOWN, LV1);	/* NC */
-		PIN_IN(gpd4-4, DOWN, LV1);	/* NC */
+		PIN_IN(gpd2-0, DOWN, LV1);	/* REG0_DET */
+		PIN_OUT_SET_PULL(gpd2-1, 0, LV1, DOWN);	/* VDD_NFC_EN */
+		PIN_IN(gpd4-4, DOWN, LV1);	/* REG1_DET */
 
 		PIN_IN(gpf4-0, DOWN, LV1);	/* NC */
 	};
@@ -147,7 +149,7 @@
 		PIN_SLP(gpb0-3, OUT1, UP);	/* BT_UART_RTS */
 
 		PIN_SLP(gpc0-1, INPUT, DOWN);	/* NC */
-		PIN_SLP(gpc0-2, OUT0, DOWN);	/* VTCAM_CORE_EN */
+		PIN_SLP(gpc0-2, PREV, NONE);	/* NFC_DET */
 
 		PIN_SLP(gpc1-0, PREV, UP);	/* IF_PMIC_SDA_1P8 */
 		PIN_SLP(gpc1-1, PREV, UP);	/* IF_PMIC_SCL_1P8 */
@@ -178,18 +180,18 @@
 		PIN_SLP(gpd1-2, OUT0, DOWN);	/* VTCAM_A2P8_EN */
 		PIN_SLP(gpd1-3, PREV, NONE);	/* IFPMIC_MRSTB */
 		PIN_SLP(gpd1-4, INPUT, DOWN);	/* FG_ERR */
-		PIN_SLP(gpd1-5, INPUT, DOWN);	/* TDMB_FM_SW_SEL */
+		PIN_SLP(gpd1-5, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpd1-6, INPUT, NONE);	/* HW_REV3 */
 
-		PIN_SLP(gpd2-0, INPUT, DOWN);	/* NC */
+		PIN_SLP(gpd2-0, INPUT, DOWN);	/* REG0_DET */
 		PIN_SLP(gpd2-1, PREV, DOWN);	/* VDD_NFC_EN */
-		PIN_SLP(gpd2-2, PREV, NONE);	/* AMP_RST_N */
+		PIN_SLP(gpd2-2, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpd2-3, PREV, NONE);	/* RGB_PROXY_EN */
 		PIN_SLP(gpd2-4, INPUT, NONE);	/* HW_REV0 */
 		PIN_SLP(gpd2-5, INPUT, NONE);	/* HW_REV1 */
 
 		PIN_SLP(gpd3-0, INPUT, NONE);	/* HW_REV2 */
-		PIN_SLP(gpd3-1, INPUT, DOWN);	/* OCTA_ID(TP) */
+		PIN_SLP(gpd3-1, INPUT, DOWN);	/* NC */
 		PIN_SLP(gpd3-2, OUT0, DOWN);	/* CAM_FLASH_EN */
 		PIN_SLP(gpd3-3, PREV, NONE);	/* CAM_TORCH_EN */
 		PIN_SLP(gpd3-4, PREV, NONE);	/* MLCD_RST */
@@ -201,7 +203,7 @@
 		PIN_SLP(gpd4-1, PREV, DOWN);	/* NFC_FIRM */
 		PIN_SLP(gpd4-2, INPUT, DOWN);	/* CAM_RST */
 		PIN_SLP(gpd4-3, OUT0, DOWN);	/* VDD_CAM_IO_1P8_EN */
-		PIN_SLP(gpd4-4, INPUT, DOWN);	/* NC */
+		PIN_SLP(gpd4-4, INPUT, DOWN);	/* REG1_DET */
 		PIN_SLP(gpd4-5, PREV, NONE);	/* BTP_LDO_EN */
 		PIN_SLP(gpd4-6, PREV, NONE);	/* BTP_RST_N */
 
@@ -220,8 +222,8 @@
 		PIN_SLP(gpf2-0, INPUT, NONE);	/* NFC_SDA_1P8 */
 		PIN_SLP(gpf2-1, INPUT, NONE);	/* NFC_SCL_1P8 */
 
-		PIN_SLP(gpf3-0, INPUT, NONE);	/* GRIP_SCL_1P8 */
-		PIN_SLP(gpf3-1, INPUT, NONE);	/* GRIP_SDA_1P8 */
+		PIN_SLP(gpf3-0, INPUT, UP);	/* GRIP_SCL_1P8 */
+		PIN_SLP(gpf3-1, INPUT, UP);	/* GRIP_SDA_1P8 */
 
 		PIN_SLP(gpf3-2, INPUT, DOWN);	/* VTCAM_EEP_SDA_1P8 */
 		PIN_SLP(gpf3-3, INPUT, DOWN);	/* VTCAM_EEP_SCL_1P8 */

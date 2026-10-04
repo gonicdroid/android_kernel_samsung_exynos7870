@@ -357,8 +357,7 @@ int fmp_run(struct fmp_info *info, struct fcrypt *fcr, struct kernel_crypt_op *k
 
 	if ((ses_ptr->cdata.init != 0) && (cop->len > PAGE_SIZE)) {
 		dev_err(dev, "Invalid input length. len = %d\n", cop->len);
-		ret = -EINVAL;
-		goto out_unlock;
+		return -EINVAL;
 	}
 
 	if (ses_ptr->cdata.init != 0) {
@@ -430,8 +429,7 @@ int fmp_run_AES_CBC_MCT(struct fmp_info *info, struct fcrypt *fcr,
 
 	if (cop->len > PAGE_SIZE) {
 		dev_err(dev, "Invalid input length. len = %d\n", cop->len);
-		ret = -EINVAL;
-		goto out_unlock;
+		return -EINVAL;
 	}
 
 	if (ses_ptr->cdata.init != 0) {
@@ -462,8 +460,7 @@ int fmp_run_AES_CBC_MCT(struct fmp_info *info, struct fcrypt *fcr,
 	        data = (char *)__get_free_page(GFP_KERNEL);
 		if (unlikely(!data)) {
 			dev_err(dev, "Error getting free page.\n");
-			ret = -ENOMEM;
-			goto out_unlock;
+			return -ENOMEM;
 		}
 
 		Pt = (char**)kmalloc(1000 * sizeof(char*), GFP_KERNEL);

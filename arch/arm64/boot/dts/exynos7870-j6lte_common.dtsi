@@ -9,11 +9,11 @@
  * published by the Free Software Foundation.
  */
 
-#include "exynos7870-rmem-3000MB.dtsi"
+#include "exynos7870-rmem-2000MB.dtsi"
 #include "exynos7870.dtsi"
 
 / {
-	model = "Samsung A6LTE board based on Exynos7870";
+	model = "Samsung J6 LTE board based on Exynos7870";
 	compatible = "samsung,exynos7870", "samsung,universal7870";
 
 	ect {
@@ -28,7 +28,7 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x80000000>;
+		reg = <0x0 0x80000000 0x40000000>;
 	};
 
 	memory@100000000 {
@@ -69,6 +69,7 @@
 	};
 
 	serial_0: uart@13810000 {
+		samsung,uart-logging;
 		status = "okay";
 	};
 
@@ -77,7 +78,6 @@
 	};
 
 	serial_2: uart@13820000 {
-		samsung,uart-logging;
 		status = "okay";
 	};
 
@@ -103,15 +103,6 @@
 			samsung,pin-function = <2>;
 			samsung,pin-pud = <0>;
 		};
-
-		spk_amp_reset: spk-amp-reset {
-			samsung,pins = "gpd2-2";
-			samsung,pin-function = <1>;
-			samsung,pin-pud = <0>;
-			samsung,pin-val = <0>;
-			samsung,pin-con-pdn = <3>;
-			samsung,pin-pud-pdn = <0>;
-		};
 	};
 
 	pinctrl@139F0000 {
@@ -120,60 +111,14 @@
 			samsung,pin-pud = <3>;
 			samsung,pin-drv = <3>;
 		};
-
-		spk_amp_irq: spk-amp-irq {
-			samsung,pins = "gpa1-7";
-			samsung,pin-function = <0xf>;
-			samsung,pin-pud = <0>;
-		};
 	};
 
 	i2c@13860000 {
 		status = "okay";
 		samsung,i2c-max-bus-freq = <400000>;
+		samsung,i2c-bus-num = <20>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&spk_amp_i2c &spk_amp_reset &spk_amp_irq>;
-
-		cs35l40: cs35l40@40 {
-			#sound-dai-cells = <1>;
-			compatible = "cirrus,cs35l40";
-			reg = <0x40>;
-
-			interrupt-parent = <&gpa1>;
-			interrupts = <7 0 0>;
-
-			cirrus,boost-peak-milliamp = <3100>;
-			cirrus,temp-warn-threshold = <2>;
-
-			cirrus,dsp-noise-gate-enable;
-			cirrus,dsp-noise-gate-threshold = <0x3>;
-			cirrus,dsp-noise-gate-delay = <0x7>;
-
-			cirrus,hw-noise-gate-select = <0x3F>;
-			cirrus,hw-noise-gate-delay = <0x7>;
-			cirrus,hw-noise-gate-threshold = <0x7>;
-
-			reset-gpios = <&gpd2 2 0>;
-
-			cirrus,fixed-hw-params {
-				cirrus,fixed-rate = <48000>;
-				cirrus,fixed-width = <16>;
-				cirrus,fixed-wl = <16>;
-			};
-
-			cirrus,classh-internal-algo {
-				cirrus,classh-headroom = <0xb>;
-				cirrus,classh-release-rate = <0x4>;
-				cirrus,classh-mem-depth = <0x5>;
-				cirrus,classh-wk-fet-delay = <0x4>;
-				cirrus,classh-wk-fet-thld = <0x1>;
-			};
-
-			cirrus,gpio-config2 {
-				cirrus,gpio-src-select = <0x4>;
-				cirrus,gpio-output-enable;
-			};
-		};
+		pinctrl-0 = <&spk_amp_i2c>;
 	};
 
 	but_zones: but_zones {
@@ -198,8 +143,8 @@
 			io-channel-names = "adc-jack";
 			#io-channel-cells = <1>;
 			io-channel-ranges;
-			but-zones-list = <&but_zones 226 0 230>, /* send/end */
-					<&but_zones 582 231 305>, /* google */
+			but-zones-list = <&but_zones 226 0 220>, /* send/end */
+					<&but_zones 582 221 305>, /* google */
 					<&but_zones 115 306 510>, /* vol up */
 					<&but_zones 114 511 1107>; /* vol down */
 			mic-adc-range = <1347>;
@@ -274,29 +219,6 @@
 			&audio_codec_cod3026x
 			&audio_codec_cod3026x
 			&audio_codec_cod3026x>;
-		samsung,audio-amp-num = <1>;
-		samsung,audio-amp = <&cs35l40
-			&cs35l40
-			&cs35l40
-			&audio_codec_dummy
-			&cs35l40
-			&cs35l40
-			&audio_codec_dummy
-			&cs35l40
-			&cs35l40
-			&cs35l40
-			&cs35l40>;
-		samsung,audio-amp-dai-name = "cs35l40-pcm",
-			"cs35l40-pcm",
-			"cs35l40-pcm",
-			"dummy-aif2",
-			"cs35l40-pcm",
-			"cs35l40-pcm",
-			"dummy-aif2",
-			"cs35l40-pcm",
-			"cs35l40-pcm",
-			"cs35l40-pcm",
-			"cs35l40-pcm";
 		mic-bias-mode = <1 0 2 0>;
 		samsung,auxdev = <&s1402x>;
 		status = "okay";
@@ -436,7 +358,6 @@
 		caps-control;
 		supports-highspeed;
 		supports-4bit;
-		sd-uhs-sdr104;
 		keep-power-in-suspend;
 		pm-ignore-notify;
 		card-detect-type-external;
@@ -898,8 +819,8 @@
 
 	fimc_is@14400000 {
 		vender {
-			rear_sensor_id = <58>; /* SENSOR_NAME_S5K2P6 */
-			front_sensor_id = <58>; /* SENSOR_NAME_S5K2P6 */
+			rear_sensor_id = <8>; /* SENSOR_NAME_S5K3L2 */
+			front_sensor_id = <24>; /* SENSOR_NAME_S5K4H5YC */
 			use_module_check;
 
 			total_camera_num = <2>;
@@ -1344,8 +1265,8 @@
 		interrupts = <0 436 0>, <0 437 0>;
 	};
 
-	fimc_is_module_2p6_af: fimc-is_sensor_2p6_af@2D {
-		compatible = "samsung,sensor-module-2p6";
+	fimc_is_module_3l2: fimc-is_sensor_3l2@2D {
+		compatible = "samsung,sensor-module-3l2";
 
 		pinctrl-names = "default", "pin0", "pin1";
 		pinctrl-0 = <&fimc_is_mclk0_default>; /*need to config for drv strength*/
@@ -1356,18 +1277,18 @@
 		id = <0>; /* sensor node id */
 		mclk_ch = <0>;
 		sensor_i2c_ch = <0>; /* I2C 0 */
-		sensor_i2c_addr = <0x2D>;
+		sensor_i2c_addr = <0x5A>;
 
 		gpio_reset = <&gpd4 2 0x1>; /* sensor reset */
 		gpio_camio_1p8_en = <&gpd4 3 0x1>; /* VDD_CAM_IO_1P8_EN */
-		gpio_cam_core_en = <&gpf4 1 0x1>; /* CAM_CORE_EN */
+		gpio_cam_1p2_en = <&gpf4 1 0x1>; /* CAM_CORE_EN */
 		gpio_camaf_2p8_en = <&gpd1 1 0x1>; /* RCAM_AF_2P8_EN */
 		gpio_cam_2p8_en = <&gpd3 5 0x1>; /* CAM_MAIN_2P8_EN */
 		status = "okay";
 
 		af {
-			product_name = <20>; /* ACTUATOR_NAME_ZC535 */
-			i2c_addr = <0x0C>;
+			product_name = <13>; /* ACTUATOR_NAME_DW9807 */
+			i2c_addr = <0x18>;
 			i2c_ch = <1>;
 		};
 
@@ -1378,8 +1299,8 @@
 		};
 	};
 
-	fimc_is_module_2p6: fimc-is_sensor_2p6@10 {
-		compatible = "samsung,sensor-module-2p6";
+	fimc_is_module_4h5yc: fimc-is_sensor_4h5yc@10 {
+		compatible = "samsung,sensor-module-4h5yc";
 
 		pinctrl-names = "default", "pin0", "pin1";
 		pinctrl-0 = <&fimc_is_mclk1_default>; /*need to config for drv strength*/
@@ -1390,10 +1311,10 @@
 		id = <1>; /* sensor node id */
 		mclk_ch = <1>;
 		sensor_i2c_ch = <1>;
-		sensor_i2c_addr = <0x10>;
+		sensor_i2c_addr = <0x36>;
 
 		gpio_reset = <&gpa1 5 0x1>; /* sensor reset */
-		gpio_cam_core_en = <&gpc0 2 0x1>; /* VTCAM_CORE_EN */
+		gpio_vtcam_1p2_en = <&gpc8 0 0x1>; /* VTCAM_CORE_EN */
 		gpio_camio_1p8_en = <&gpd4 3 0x1>; /* VDD_CAM_IO_1P8_EN */
 		gpio_cam_2p8_en = <&gpd1 2 0x1>; /* VTCAM_A2P8_EN */
 		status = "okay";
@@ -1431,12 +1352,12 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hs_i2c3_bus>;
 
-		fimc-is-2p6_af@2D {
-			compatible = "samsung,exynos5-fimc-is-cis-2p6";
+		fimc-is-3l2@2D {
+			compatible = "samsung,exynos5-fimc-is-cis-3l2";
 			reg = <0x2D>;
 			id = <0>; /* matching sensor id */
-			fnum = <17>; /* F1_7 : fimc-is-param.h */
-			setfile = "setA";
+			fnum = <2>; /* F1_9 : fimc-is-param.h */
+			setfile = "setB";
 			use_initial_ae;	/* for initial AE */
 		};
 	};
@@ -1456,7 +1377,7 @@
 		};
 
 		fimc-is-actuator@0C {
-			compatible = "samsung,exynos5-fimc-is-actuator-zc535";
+			compatible = "samsung,exynos5-fimc-is-actuator-dw9807";
 			reg = <0x0C>;
 			id = <0>; /* matching sensor id */
 		};
@@ -1470,17 +1391,23 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&hs_i2c5_bus>;
 
-		fimc-is-2p6@10 {
-			compatible = "samsung,exynos5-fimc-is-cis-2p6";
-			reg = <0x10>;
+		fimc-is-4h5yc@10 {
+			compatible = "samsung,exynos5-fimc-is-cis-4h5yc";
+			reg = <0x36>;
 			id = <1>; /* matching sensor id */
 			fnum = <2>; /* F1_9 : fimc-is-param.h */
-			setfile = "setA"; /*EVT 01*/
+			setfile = "setB"; /*EVT 01*/
 			use_initial_ae;	/* for initial AE */
 		};
 	};
 
 	pinctrl@139B0000 {
+		nfc_det: nfc-det {
+			samsung,pins = "gpc0-2";
+			samsung,pin-function = <0>;
+			samsung,pin-pud = <0>;
+		};
+
 		nfc_pvdd_en: nfc-pvdd-en {
 			samsung,pins = "gpd2-1";
 			samsung,pin-function = <1>;
@@ -1511,8 +1438,9 @@
 			clkctrl-reg = <0x1048600C>;
 			sec-nfc,nfc_clkreq = <&gpc2 3 0x2>;
 			sec-nfc,pvdd_en = <&gpd2 1 0>;
+			sec-nfc,check_nfc = <&gpc0 2 0x0>;
 			pinctrl-names = "default";
-			pinctrl-0 = <&nfc_n5_firm &nfc_n5_clk_req &nfc_pd &nfc_int &nfc_pvdd_en>;
+			pinctrl-0 = <&nfc_n5_firm &nfc_n5_clk_req &nfc_pd &nfc_int &nfc_pvdd_en &nfc_det>;
 		};
 	};
 
@@ -1604,14 +1532,14 @@
 		compatible = "samsung,sec-ap-thermistor";
 		status = "okay";
 
-		adc_array = <291 331 402 493 532 646 762 841 893 956 
-					 1021 1111 1140 1181 1287 1295 1404 1517 1601 1689 
-					 1782 1950 2044 2245 2472 2693 2895 2920 3078 3179 
-					 3241 3272 3302 3431 3508>;
+		adc_array = <268 312 367 439 514 604 722 796 851 903
+					993 1054 1088 1149 1216 1328 1445 1526 1609 1732
+					1860 1951 2176 2394 2621 2819 2900 3007 3112 3181
+					3306 3435 3546>;
 		temp_array = <900 850 800 750 700 650 600 570 550 530
-					  500 480 470 450 430 420 400 370 350 330
-					  300 270 250 200 150 100 50 30 0 (-30)
-					  (-50) (-70) (-100) (-150) (-200)>;
+					500 480 470 450 430 400 370 350 330 300
+					270 250 200 150 100 50 30 0 (-30) (-50)
+					(-100) (-150) (-200)>;
 		io-channels = <&exynos_adc 0>;
 		io-channel-names = "adc-ap-temp";
 		io-channel-ranges;
@@ -1756,22 +1684,6 @@
 		exec,time = <   20>;  /* ms */
 	};
 
-	sec_abc {
-		compatible = "samsung,sec_abc";
-		status = "okay";
-
-		gpu {
-			gpu,label="GPU fault";
-			gpu,threshold_count=<20>;
-			gpu,threshold_time=<1200>;
-		};
-		aicl {
-			aicl,label="battery aicl";
-			aicl,threshold_count=<5>;
-			aicl,threshold_time=<300>;
-		};
-	};
-
 	i2c@13890000 {
 		samsung,i2c-sda-delay = <100>;
 		samsung,i2c-max-bus-freq = <400000>;
@@ -1790,8 +1702,8 @@
 			zinitix,area-size = <48 96 60>; /* indicator: 24dp navigator:48dp edge:60px dpi=320*/
 			zinitix,page_size = <128>;
 			zinitix,chip_name = "ZT7548";
-			zinitix,firmware_name = "tsp_zinitix/zt7548_a6lte.fw";
-			zinitix,spay = "true";
+			zinitix,firmware_name = "tsp_zinitix/zt7548_j6.fw";
+			/* zinitix,spay = "true"; */
 			/* zinitix,aod = "true"; */
 			zinitix,tclm_level = <0x02>;
 			zinitix,afe_base = <0x800D>;
