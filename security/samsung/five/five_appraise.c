@@ -36,14 +36,8 @@
 #define FIVE_RSA_SIGNATURE_MAX_LENGTH (2048/8)
 /* Identify extend structure of integrity label */
 #define FIVE_ID_INTEGRITY_LABEL_EX 0xFFFF
+/* Identify extend structure of integrity label */
 #define FIVE_LABEL_VERSION1 1
-/* Maximum length of data integrity label.
- * This limit is applied because:
- * 1. TEEgris doesn't support signing data longer than 480 bytes;
- * 2. The label's length is limited to 3965 byte according to the data
- * transmission protocol between five_tee_driver and TA.
- */
-#define FIVE_LABEL_MAX_LEN 256
 
 /**
  * Extend structure of integrity label.
@@ -646,8 +640,7 @@ static int copy_label(const struct integrity_label __user *ulabel,
 			goto error;
 		}
 
-		if (len != header.len ||
-		    header.label.len > FIVE_LABEL_MAX_LEN ||
+		if (len != header.len || header.label.len > PAGE_SIZE ||
 		    header.version <= FIVE_LABEL_VERSION1) {
 			rc = -EINVAL;
 			goto error;
@@ -669,7 +662,7 @@ static int copy_label(const struct integrity_label __user *ulabel,
 			goto error;
 		}
 	} else {
-		if (len > FIVE_LABEL_MAX_LEN) {
+		if (len > PAGE_SIZE) {
 			rc = -EINVAL;
 			goto error;
 		}

@@ -52,6 +52,9 @@ static uint32_t run_cmd_teegris(uint32_t cmd, uint32_t arg1,
 		return -EFAULT;
 	}
 
+	arg2 = p1;
+	arg3 = p2;
+	cmd = p3;
 	if(arg1) {
 		return p2;
 	}

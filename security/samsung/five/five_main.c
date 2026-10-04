@@ -193,8 +193,7 @@ static void work_handler(struct work_struct *in_data)
 		}
 		case FIVE_RESET_INTEGRITY: {
 			task_integrity_reset(intg);
-			five_hook_integrity_reset(five_file->task,
-						  NULL, CAUSE_UNKNOWN);
+			five_hook_integrity_reset(five_file->task);
 			break;
 		}
 		default:
@@ -212,7 +211,7 @@ static void work_handler(struct work_struct *in_data)
 	kfree(context);
 }
 
-const char *five_d_path(const struct path *path, char **pathbuf, char *namebuf)
+const char *five_d_path(const struct path *path, char **pathbuf)
 {
 	char *pathname = NULL;
 
@@ -226,12 +225,11 @@ const char *five_d_path(const struct path *path, char **pathbuf, char *namebuf)
 		}
 	}
 
-	if (!pathname) {
-		strlcpy(namebuf, path->dentry->d_name.name, NAME_MAX);
-		pathname = namebuf;
+	if (!pathname || !*pathbuf) {
+		pr_err("FIVE: Can't obtain absolute path: %p %p\n",
+				pathname, *pathbuf);
 	}
-
-	return pathname;
+	return pathname ?: (const char *)path->dentry->d_name.name;
 }
 
 int five_check_params(struct task_struct *task, struct file *file)
@@ -369,13 +367,13 @@ static int push_reset_event(struct task_struct *task,
 		GFP_KERNEL);
 	if (unlikely(!five_reset)) {
 		task_integrity_reset_both(current_tint);
-		five_hook_integrity_reset(task, file, cause);
+		five_hook_integrity_reset(task);
 		task_integrity_put(current_tint);
 		return -ENOMEM;
 	}
 
 	task_integrity_reset_both(current_tint);
-	five_hook_integrity_reset(task, file, cause);
+	five_hook_integrity_reset(task);
 	spin_lock(&current_tint->list_lock);
 	if (!list_empty(&current_tint->events.list)) {
 		list_cut_tail(&current_tint->events.list, &dead_list);
@@ -468,7 +466,6 @@ static inline bool is_dex2oat_binary(const struct file *file)
 		"/apex/com.android.art/bin/dex2oat",	/* R OS */
 		"/apex/com.android.runtime/bin/dex2oat"	/* Q OS */
 	};
-	char filename[NAME_MAX];
 	bool res = false;
 	size_t i;
 
@@ -479,7 +476,9 @@ static inline bool is_dex2oat_binary(const struct file *file)
 			sizeof("dex2oat")))
 		return false;
 
-	pathname = five_d_path(&file->f_path, &pathbuf, filename);
+	pathname = five_d_path(&file->f_path, &pathbuf);
+	if (!pathname)
+		goto exit;
 
 	for (i = 0; i < ARRAY_SIZE(dex2oat_full_path); ++i) {
 		if (!strncmp(pathname, dex2oat_full_path[i],
@@ -489,6 +488,7 @@ static inline bool is_dex2oat_binary(const struct file *file)
 		}
 	}
 
+exit:
 	if (pathbuf)
 		__putname(pathbuf);
 
