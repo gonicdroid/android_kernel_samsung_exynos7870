@@ -373,11 +373,24 @@ dhd_set_macaddr_from_file(dhd_pub_t *dhdp)
 
 	memset(mac_buf, 0, sizeof(mac_buf));
 	if (ETHER_ISNULLADDR(&sysfs_mac_addr)) {
-		/* Generate a new random MAC address */
-		dhd_create_random_mac(mac_buf, sizeof(mac_buf));
-		if (!bcm_ether_atoe(mac_buf, &sysfs_mac_addr)) {
-			DHD_ERROR(("%s : mac parsing err\n", __FUNCTION__));
-			return BCME_ERROR;
+		/* Fallback: try reading MAC from EFS file
+		 * (for legacy macloader compatibility)
+		 */
+		if (dhd_read_file(MACINFO_EFS, mac_buf,
+				sizeof(mac_buf) - 1) < 0 ||
+				!bcm_ether_atoe(mac_buf, &sysfs_mac_addr)) {
+			DHD_ERROR(("%s: EFS MAC read failed,"
+				" generating random MAC\n", __FUNCTION__));
+			memset(mac_buf, 0, sizeof(mac_buf));
+			dhd_create_random_mac(mac_buf, sizeof(mac_buf));
+			if (!bcm_ether_atoe(mac_buf, &sysfs_mac_addr)) {
+				DHD_ERROR(("%s : mac parsing err\n", __FUNCTION__));
+				return BCME_ERROR;
+			}
+		} else {
+			DHD_ERROR(("%s: MAC address read from EFS: "
+				MACDBG "\n", __FUNCTION__,
+				MAC2STRDBG(sysfs_mac_addr.octet)));
 		}
 	}
 
@@ -499,18 +512,45 @@ dhd_check_module_mac(dhd_pub_t *dhdp)
 #else
 		DHD_INFO(("%s: Couldn't read CIS information\n", __FUNCTION__));
 
-		/* Read the MAC address from the specified file */
+		/* Read the MAC address from sysfs or EFS file */
 		if (ETHER_ISNULLADDR(&sysfs_mac_addr)) {
-			DHD_ERROR(("%s: Couldn't read the file, "
-				"use the default MAC Address\n", __FUNCTION__));
-			if (dhd_set_default_macaddr(dhdp) < 0) {
-				return BCME_BADARG;
+			/* Fallback: try reading MAC from EFS file
+			 * (for legacy macloader compatibility)
+			 */
+			char eabuf[ETHER_ADDR_STR_LEN];
+			unsigned char efs_mac_buf[MAC_BUF_SIZE];
+			memset(efs_mac_buf, 0, sizeof(efs_mac_buf));
+			if (dhd_read_file(MACINFO_EFS, efs_mac_buf,
+					sizeof(efs_mac_buf) - 1) < 0) {
+				DHD_ERROR(("%s: Couldn't read the file, "
+					"use the default MAC Address\n",
+					__FUNCTION__));
+				if (dhd_set_default_macaddr(dhdp) < 0) {
+					return BCME_BADARG;
+				}
+			} else {
+				bzero((char *)eabuf, ETHER_ADDR_STR_LEN);
+				strncpy(eabuf, efs_mac_buf,
+					ETHER_ADDR_STR_LEN - 1);
+				if (!bcm_ether_atoe(eabuf, mac)) {
+					DHD_ERROR(("%s : mac parsing err"
+						" from EFS\n", __FUNCTION__));
+					if (dhd_set_default_macaddr(dhdp) < 0) {
+						return BCME_BADARG;
+					}
+				} else {
+					DHD_ERROR(("%s: MAC address read"
+						" from EFS: " MACDBG "\n",
+						__FUNCTION__,
+						MAC2STRDBG(mac->octet)));
+				}
 			}
 		} else {
 			/* sysfs mac addr is confirmed with valid format in set_mac_addr */
 			memcpy(mac, &sysfs_mac_addr, sizeof(sysfs_mac_addr));
 		}
 #endif /* !DHD_MAC_ADDR_EXPORT */
+
 	} else {
 		struct list_head mac_list;
 		unsigned char tuple_len = 0;
