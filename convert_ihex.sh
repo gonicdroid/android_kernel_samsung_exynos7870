@@ -2,7 +2,7 @@
 
 # Convert HEX files to IHEX
 # Path absolute to the firmware folder of your kernel
-FIRMWARE_DIR="/home/gonic/Git/android_kernel_samsung_exynos7870_j7xelte/firmware"
+FIRMWARE_DIR="$(pwd)/firmware"
 
 echo "==================================================="
 echo "Starting conversion from .ihex to (.fw)"
