@@ -117,8 +117,8 @@
 				};
 				vendor {
 					compatible = "android,vendor";
-					dev = "/dev/block/platform/13540000.dwmmc0/by-name/HIDDEN";
-					type = "squashfs";
+					dev = "/dev/block/platform/13540000.dwmmc0/by-name/VENDOR";
+					type = "ext4";
 					mnt_flags = "ro";
 					fsmgr_flags = "wait";
 				};
