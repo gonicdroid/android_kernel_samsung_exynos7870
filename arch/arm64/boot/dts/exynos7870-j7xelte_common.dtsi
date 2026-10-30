@@ -44,15 +44,15 @@
 		};
 	};
 	firmware {
-		android {
-			compatible = "android,firmware";
-			fstab {
-				compatible = "android,fstab";
-				system {
-					compatible = "android,system";
-					dev = "/dev/block/platform/13540000.dwmmc0/by-name/SYSTEM";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1,discard";
+	   android {
+		 compatible = "android,firmware";
+		  fstab {
+			 compatible = "android,fstab";
+			 system {
+				  compatible = "android,system";
+				  dev = "/dev/block/platform/13540000.dwmmc0/by-name/SYSTEM";
+				  type = "ext4";
+				  mnt_flags = "ro,barrier=1,discard";
 					fsmgr_flags = "wait";
 				};
 				vendor {
@@ -61,9 +61,9 @@
 					type = "ext4";
 					mnt_flags = "ro";
 					fsmgr_flags = "wait";
-				};
-			};
-		};
+				 };
+		   };
+	  };
 	};
 
 	reserved-memory {
@@ -1401,7 +1401,7 @@
 	};
 
 	decon_board: decon_board {
-		gpio_lcd_rst = <&gpd3 4 0>;
+		gpio_lcd_rst = <&gpd3 4 0x1>;
 
 		dsim_set_panel_power_enable {
 			type =
@@ -1411,20 +1411,20 @@
 		};
 		dsim_set_panel_power_disable {
 			type =
-			"delay,usleep",	"5000",
+			"delay,usleep",	"5000 6000",
 			"gpio,low",	"gpio_lcd_rst",
-			"delay,usleep",	"10000",
+			"delay,usleep",	"10000 11000",
 			"regulator,disable",	"LCD_3P0",
 			"regulator,disable",	"LCD_1P8";
 		};
 		dsim_reset_panel {
 			type =
 			"gpio,high",	"gpio_lcd_rst",
-			"delay,usleep",	"5000",
+			"delay,usleep",	"5000 6000",
 			"gpio,low",	"gpio_lcd_rst",
-			"delay,usleep",	"5000",
+			"delay,usleep",	"5000 6000",
 			"gpio,high",	"gpio_lcd_rst",
-			"delay,usleep",	"10000";
+			"delay,usleep",	"10000 11000";
 		};
 	};
 
