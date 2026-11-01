@@ -1384,6 +1384,62 @@ static int s2mu005_led_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void s2mu005_led_shutdown(struct platform_device *pdev)
+{
+	struct s2mu005_led_data **led_datas = platform_get_drvdata(pdev);
+	struct s2mu005_led_data *led_data = NULL;
+	int i;
+
+	pr_info("%s : start led shutdown\n", __func__);
+
+	if (!led_datas)
+		return;
+
+	for (i = 0; i != S2MU005_LED_MAX; ++i) {
+		if (led_datas[i] == NULL)
+			continue;
+
+		cancel_work_sync(&led_datas[i]->work);
+		led_datas[i]->test_brightness = LED_TURN_OFF;
+		led_datas[i]->cdev.brightness = LED_OFF;
+
+#ifndef CONFIG_S2MU005_LEDS_I2C
+		if (gpio_is_valid(led_datas[i]->torch_pin))
+			gpio_direction_output(led_datas[i]->torch_pin, 0);
+		if (gpio_is_valid(led_datas[i]->flash_pin))
+			gpio_direction_output(led_datas[i]->flash_pin, 0);
+#endif
+
+		if (!led_data)
+			led_data = led_datas[i];
+	}
+
+	assistive_light = false;
+#if defined(CONFIG_LEDS_SUPPORT_FRONT_FLASH)
+	front_assistive_light = false;
+#endif
+
+	if (!led_data || !led_data->i2c)
+		return;
+
+	/* Turn off all channels in enable register */
+	s2mu005_write_reg(led_data->i2c, CH_FLASH_TORCH_EN, S2MU005_FLASH_TORCH_OFF);
+
+	/* Turn off brightness/current for Rear Flash and Torch */
+	s2mu005_update_reg(led_data->i2c, S2MU005_REG_FLED_CH1_CTRL0, 0, S2MU005_FLASH_IOUT_MASK);
+	s2mu005_update_reg(led_data->i2c, S2MU005_REG_FLED_CH1_CTRL1, 0, S2MU005_TORCH_IOUT_MASK);
+
+#if defined(CONFIG_LEDS_SUPPORT_FRONT_FLASH)
+	/* Turn off brightness/current for Front Flash/Torch */
+	s2mu005_update_reg(led_data->i2c, S2MU005_REG_FLED_CH2_CTRL1, 0, S2MU005_TORCH_IOUT_MASK);
+#endif
+
+	/* Turn off torch boost / charger current injection */
+	s2mu005_update_reg(led_data->i2c, S2MU005_REG_FLED_CTRL1, 0x00, 0x80);
+
+	pr_info("%s : complete led shutdown\n", __func__);
+}
+
 static const struct platform_device_id s2mu005_leds_id[] = {
 	{"s2mu005-flash", 0},
 	{},
@@ -1394,8 +1450,9 @@ static struct platform_driver s2mu005_led_driver = {
 		.name  = "s2mu005-flash",
 		.owner = THIS_MODULE,
 		},
-	.probe  = s2mu005_led_probe,
-	.remove = s2mu005_led_remove,
+	.probe    = s2mu005_led_probe,
+	.remove   = s2mu005_led_remove,
+	.shutdown = s2mu005_led_shutdown,
 	.id_table = s2mu005_leds_id,
 };
 
