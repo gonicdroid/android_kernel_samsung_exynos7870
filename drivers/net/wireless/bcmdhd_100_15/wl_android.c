@@ -4227,6 +4227,8 @@ int wl_android_wifi_on(struct net_device *dev)
 			}
 		}
 #endif /* !BCMPCIE */
+		/* Force BT/WiFi Preemption mode */
+		wldev_iovar_setint(dev, "btc_mode", 2);
 		g_wifi_on = TRUE;
 	}
 
