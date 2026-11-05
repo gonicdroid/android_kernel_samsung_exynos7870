@@ -1,5 +1,9 @@
 #!/bin/sh
 
 MAJOR=$(echo $1 | cut -d '.' -f 1)
-let MAJOR=MAJOR+103
-printf "%b" "$(printf '\%03o' $MAJOR)"
+MAJOR=$((MAJOR + 103))
+if [ "$MAJOR" -gt 113 ]; then
+    MAJOR=113
+fi
+printf "%b" "$(printf '\\%03o' $MAJOR)"
+
