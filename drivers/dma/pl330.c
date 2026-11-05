@@ -538,12 +538,13 @@ struct _xfer_spec {
 	struct dma_pl330_desc *desc;
 };
 
-static inline void put_unaligned_le32(u32 val, u8 *p)
+static inline void put_unaligned_le32(u32 val, void *p)
 {
-	*p++ = val;
-	*p++ = val >> 8;
-	*p++ = val >> 16;
-	*p++ = val >> 24;
+	volatile u8 *b = (volatile u8 *)p;
+	b[0] = val;
+	b[1] = val >> 8;
+	b[2] = val >> 16;
+	b[3] = val >> 24;
 }
 
 static inline u32 get_unaligned_le32(u8 *p)
@@ -585,7 +586,8 @@ static inline u32 _emit_ADDH(unsigned dry_run, u8 buf[],
 
 	buf[0] = CMD_DMAADDH;
 	buf[0] |= (da << 1);
-	*((u16 *)&buf[1]) = val;
+	buf[1] = val;
+	buf[2] = val >> 8;
 
 	PL330_DBGCMD_DUMP(SZ_DMAADDH, "\tDMAADDH %s %u\n",
 		da == 1 ? "DA" : "SA", val);
