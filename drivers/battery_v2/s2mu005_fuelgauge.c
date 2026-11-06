@@ -167,7 +167,7 @@ static int s2mu005_read_reg(struct i2c_client *client, int reg, u8 *buf)
 	return ret;
 }
 
-static void s2mu005_fg_test_read(struct i2c_client *client)
+static void __maybe_unused s2mu005_fg_test_read(struct i2c_client *client)
 {
 	static int reg_list[] = {
 		0x03, 0x0E, 0x0F, 0x10, 0x11, 0x1E, 0x1F, 0x21, 0x24, 0x25,
@@ -2163,6 +2163,7 @@ static int s2mu005_fuelgauge_parse_dt(struct s2mu005_fuelgauge_data *fuelgauge)
 				&fuelgauge->pdata->fg_log_enable);
 		if (ret < 0)
 			pr_err("%s fg_log_disabled %d\n", __func__, ret);
+		fuelgauge->pdata->fg_log_enable = 0;
 
 		ret = of_property_read_u32(np, "fuelgauge,fuel_alert_soc",
 				&fuelgauge->pdata->fuel_alert_soc);

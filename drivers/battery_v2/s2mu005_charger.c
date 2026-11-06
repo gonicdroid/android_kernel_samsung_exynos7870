@@ -29,7 +29,7 @@
 #define EOC_SLEEP 200
 #define EOC_TIMEOUT (EOC_SLEEP * 6)
 #ifndef EN_TEST_READ
-#define EN_TEST_READ 1
+#define EN_TEST_READ 0
 #endif
 
 #define ENABLE 1
@@ -96,7 +96,7 @@ static void s2mu005_set_fast_charging_current(struct i2c_client *i2c,
 		int charging_current);
 static int s2mu005_get_charging_health(struct s2mu005_charger_data *charger);
 
-static void s2mu005_test_read(struct i2c_client *i2c)
+static void __maybe_unused s2mu005_test_read(struct i2c_client *i2c)
 {
 	static int reg_list[] = {
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
