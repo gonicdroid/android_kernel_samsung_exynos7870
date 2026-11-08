@@ -88,6 +88,12 @@ int ss_initialized;
  */
 static u32 latest_granting;
 
+u32 selinux_bump_latest_granting(void)
+{
+	return ++latest_granting;
+}
+EXPORT_SYMBOL(selinux_bump_latest_granting);
+
 /* Forward declaration. */
 static int context_struct_to_string(struct context *context, char **scontext,
 				    u32 *scontext_len);

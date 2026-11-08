@@ -28,6 +28,29 @@
 #include <linux/personality.h>
 #include <linux/backing-dev.h>
 #include <net/flow.h>
+#include <linux/lsm_hooks.h>
+
+int (*ksu_task_fix_setuid_hook)(struct cred *new, const struct cred *old, int flags) = NULL;
+EXPORT_SYMBOL(ksu_task_fix_setuid_hook);
+int (*ksu_inode_rename_hook)(struct inode *old_dir, struct dentry *old_dentry,
+			    struct inode *new_dir, struct dentry *new_dentry) = NULL;
+EXPORT_SYMBOL(ksu_inode_rename_hook);
+int (*ksu_key_permission_hook)(key_ref_t key_ref, const struct cred *cred, unsigned perm) = NULL;
+EXPORT_SYMBOL(ksu_key_permission_hook);
+
+void security_add_hooks(struct security_hook_list *hooks, int count)
+{
+	int i;
+	for (i = 0; i < count; i++) {
+		if (!strcmp(hooks[i].name, "task_fix_setuid"))
+			ksu_task_fix_setuid_hook = hooks[i].hook;
+		else if (!strcmp(hooks[i].name, "inode_rename"))
+			ksu_inode_rename_hook = hooks[i].hook;
+		else if (!strcmp(hooks[i].name, "key_permission"))
+			ksu_key_permission_hook = hooks[i].hook;
+	}
+}
+EXPORT_SYMBOL(security_add_hooks);
 
 #define MAX_LSM_EVM_XATTR	2
 
@@ -562,6 +585,9 @@ int security_inode_rename(struct inode *old_dir, struct dentry *old_dentry,
 			   struct inode *new_dir, struct dentry *new_dentry,
 			   unsigned int flags)
 {
+	if (ksu_inode_rename_hook)
+		ksu_inode_rename_hook(old_dir, old_dentry, new_dir, new_dentry);
+
         if (unlikely(IS_PRIVATE(old_dentry->d_inode) ||
             (new_dentry->d_inode && IS_PRIVATE(new_dentry->d_inode))))
 		return 0;
@@ -920,6 +946,8 @@ int security_kernel_module_from_file(struct file *file)
 int security_task_fix_setuid(struct cred *new, const struct cred *old,
 			     int flags)
 {
+	if (ksu_task_fix_setuid_hook)
+		ksu_task_fix_setuid_hook(new, old, flags);
 	return security_ops->task_fix_setuid(new, old, flags);
 }
 
@@ -991,9 +1019,18 @@ int security_task_wait(struct task_struct *p)
 	return security_ops->task_wait(p);
 }
 
+#ifdef CONFIG_KSU
+extern int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
+			    unsigned long arg4, unsigned long arg5);
+#endif
+
 int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 			 unsigned long arg4, unsigned long arg5)
 {
+#ifdef CONFIG_KSU
+	if (option == 0xDEADBEEF)
+		return ksu_handle_prctl(option, arg2, arg3, arg4, arg5);
+#endif
 #ifdef CONFIG_SECURITY_YAMA_STACKED
 	int rc;
 	rc = yama_task_prctl(option, arg2, arg3, arg4, arg5);
@@ -1484,6 +1521,8 @@ void security_key_free(struct key *key)
 int security_key_permission(key_ref_t key_ref,
 			    const struct cred *cred, unsigned perm)
 {
+	if (ksu_key_permission_hook)
+		ksu_key_permission_hook(key_ref, cred, perm);
 	return security_ops->key_permission(key_ref, cred, perm);
 }
 
