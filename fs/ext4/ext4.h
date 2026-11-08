@@ -2512,6 +2512,7 @@ do {									\
 #endif
 
 extern void ext4_update_dynamic_rev(struct super_block *sb);
+extern void ext4_unregister_sysfs(struct super_block *sb);
 extern int ext4_update_compat_feature(handle_t *handle, struct super_block *sb,
 					__u32 compat);
 extern int ext4_update_rocompat_feature(handle_t *handle,

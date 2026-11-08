@@ -836,6 +836,18 @@ static void dump_orphan_list(struct super_block *sb, struct ext4_sb_info *sbi)
 	}
 }
 
+void ext4_unregister_sysfs(struct super_block *sb)
+{
+	struct ext4_sb_info *sbi = EXT4_SB(sb);
+
+	if (sbi && sbi->s_kobj.state_in_sysfs) {
+		if (le32_to_cpu(sbi->s_es->s_sec_magic) == EXT4_SEC_DATA_MAGIC)
+			sysfs_delete_link(&ext4_kset->kobj, &sbi->s_kobj, "userdata");
+		kobject_del(&sbi->s_kobj);
+	}
+}
+EXPORT_SYMBOL(ext4_unregister_sysfs);
+
 static void ext4_put_super(struct super_block *sb)
 {
 	struct ext4_sb_info *sbi = EXT4_SB(sb);
@@ -874,10 +886,7 @@ static void ext4_put_super(struct super_block *sb)
 		remove_proc_entry(sb->s_id, ext4_proc_root);
 	}
 
-	if (le32_to_cpu(sbi->s_es->s_sec_magic) == EXT4_SEC_DATA_MAGIC)
-		sysfs_delete_link(&ext4_kset->kobj, &sbi->s_kobj, "userdata");
-
-	kobject_del(&sbi->s_kobj);
+	ext4_unregister_sysfs(sb);
 
 	for (i = 0; i < sbi->s_gdb_count; i++)
 		brelse(sbi->s_group_desc[i]);
