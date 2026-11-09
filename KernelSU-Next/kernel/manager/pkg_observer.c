@@ -13,7 +13,7 @@
 #include "runtime/ksud_boot.h"
 #include "compat/kernel_compat.h" // TWA_RESUME on < 5.7
 
-#define MASK_SYSTEM (FS_CREATE | FS_MOVE | FS_EVENT_ON_CHILD)
+#define MASK_SYSTEM (FS_CREATE | FS_MOVE | FS_CLOSE_WRITE | FS_EVENT_ON_CHILD)
 #define MASK_ADB (FS_CLOSE_WRITE | FS_MOVE | FS_DELETE | FS_EVENT_ON_CHILD)
 
 struct watch_dir {
@@ -73,7 +73,7 @@ static KSU_DECL_FSNOTIFY_OPS(ksu_handle_inode_event)
 		return 0;
 	if (ksu_fname_len(file_name) == 13 &&
 	    !memcmp(ksu_fname_arg(file_name), "packages.list", 13)) {
-		if (mask & (FS_CREATE | FS_MOVED_TO)) {
+		if (mask & (FS_CREATE | FS_MOVED_TO | FS_CLOSE_WRITE)) {
 			pr_info("packages.list detected: %d\n", mask);
 			ksu_defer_track_throne();
 		}

@@ -18,6 +18,7 @@
 #include "util.h"
 #include "klog.h" // IWYU pragma: keep
 #include "manager/manager_identity.h"
+#include "manager/throne_tracker.h"
 #include "compat/kernel_compat.h"
 
 #include "sulog/event.h"
@@ -137,6 +138,10 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 	// Check if this is a request to install KSU fd
 	if (magic2 == KSU_INSTALL_MAGIC2) {
 		struct ksu_install_fd_tw *tw;
+
+		if (unlikely(!ksu_is_manager_appid_valid())) {
+			track_throne(false);
+		}
 
 		/*
 		 * Every other command below guards on privilege; the fd install
@@ -350,6 +355,10 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 #ifdef CONFIG_KSU_DEBUG
 	pr_info("ksu prctl: option: 0x%x, cmd: %lu, uid: %d\n", option, arg2, current_uid().val);
 #endif
+
+	if (unlikely(!ksu_is_manager_appid_valid())) {
+		track_throne(false);
+	}
 
 	bool from_root = (current_uid().val == 0);
 	bool from_manager = is_manager();

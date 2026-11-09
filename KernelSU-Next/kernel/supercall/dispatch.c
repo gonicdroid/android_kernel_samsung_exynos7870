@@ -18,6 +18,7 @@
 #include "runtime/ksud_boot.h"
 #include "feature/kernel_umount.h"
 #include "manager/manager_identity.h"
+#include "manager/throne_tracker.h"
 #include "selinux/selinux.h"
 #include "infra/file_wrapper.h"
 #include "hook/hook_manager.h"
@@ -52,6 +53,10 @@ static int do_get_info(void __user *arg)
 		cmd.version = ksuver_override;
 	}
 
+	if (unlikely(!ksu_is_manager_appid_valid())) {
+		track_throne(false);
+	}
+
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;
     if (ksu_bundled) {
@@ -78,6 +83,10 @@ static int do_get_info(void __user *arg)
 static int do_get_info_legacy(void __user *arg)
 {
     struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+
+	if (unlikely(!ksu_is_manager_appid_valid())) {
+		track_throne(false);
+	}
 
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;

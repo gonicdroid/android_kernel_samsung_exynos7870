@@ -59,12 +59,30 @@ static void crown_manager(const char *apk, struct list_head *uid_data)
 	target_pkg = pkg;
 #endif
 
+	bool crowned = false;
 	list_for_each_entry (np, list, list) {
 		if (strncmp(np->package, target_pkg, KSU_MAX_PACKAGE_NAME) == 0) {
 			pr_info("Crowning manager: %s(uid=%d)\n", target_pkg, np->uid);
 			strscpy(manager_pkg, target_pkg, sizeof(manager_pkg));
 			ksu_set_manager_appid(np->uid);
+			crowned = true;
 			break;
+		}
+	}
+
+	if (!crowned) {
+		struct path data_pkg_path;
+		char data_pkg_dir[DATA_PATH_LEN];
+		snprintf(data_pkg_dir, sizeof(data_pkg_dir), "/data/data/%s", target_pkg);
+		if (kern_path(data_pkg_dir, LOOKUP_FOLLOW, &data_pkg_path) == 0) {
+			uid_t uid = data_pkg_path.dentry->d_inode->i_uid.val;
+			path_put(&data_pkg_path);
+			if (uid >= 10000 && uid < 20000) {
+				pr_info("Crowning manager from /data/data: %s(uid=%d)\n", target_pkg, uid);
+				strscpy(manager_pkg, target_pkg, sizeof(manager_pkg));
+				ksu_set_manager_appid(uid);
+				crowned = true;
+			}
 		}
 	}
 }
@@ -395,15 +413,22 @@ void track_throne(bool prune_only)
 	}
 
 	if (need_rescan) {
-		// If the apk path still exists, the verification result won't be changed
+		// If the apk path still exists, check if manager is already crowned
 		if (cached_manager_apk_path[0]) {
 			struct path p;
 			int ret = kern_path(cached_manager_apk_path, 0, &p);
 			if (ret == 0) {
-				// skip search
-				pr_info("manager apk path unchanged, skip search!\n");
 				path_put(&p);
-				goto prune;
+				if (ksu_is_manager_appid_valid()) {
+					// skip search
+					pr_info("manager apk path unchanged, skip search!\n");
+					goto prune;
+				} else {
+					crown_manager(cached_manager_apk_path, &uid_list);
+					if (ksu_is_manager_appid_valid()) {
+						goto prune;
+					}
+				}
 			} else if (ret != -ENOENT) {
 				pr_err("stat cached manager path failed: %d (path=%s)\n", ret, cached_manager_apk_path);
 			}
