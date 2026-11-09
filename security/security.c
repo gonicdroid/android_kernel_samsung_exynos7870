@@ -1019,18 +1019,9 @@ int security_task_wait(struct task_struct *p)
 	return security_ops->task_wait(p);
 }
 
-#ifdef CONFIG_KSU
-extern int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
-			    unsigned long arg4, unsigned long arg5);
-#endif
-
 int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 			 unsigned long arg4, unsigned long arg5)
 {
-#ifdef CONFIG_KSU
-	if (option == 0xDEADBEEF)
-		return ksu_handle_prctl(option, arg2, arg3, arg4, arg5);
-#endif
 #ifdef CONFIG_SECURITY_YAMA_STACKED
 	int rc;
 	rc = yama_task_prctl(option, arg2, arg3, arg4, arg5);
