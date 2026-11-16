@@ -131,8 +131,10 @@
 #include <linux/ipsec.h>
 #include <net/cls_cgroup.h>
 #include <net/netprio_cgroup.h>
+#include <linux/sock_diag.h>
 
 #include <linux/filter.h>
+#include <net/sock_reuseport.h>
 
 #include <trace/events/sock.h>
 
@@ -649,95 +651,6 @@ out:
 	return ret;
 }
 
-/* START_OF_KNOX_NPA */
-/** The function sets the domain name associated with the socket. **/
-static int sock_set_domain_name(struct sock *sk, char __user *optval,
-                int optlen)
-{
-    int ret = -EADDRNOTAVAIL;
-    char domain[DOMAIN_NAME_LEN_NAP];
-
-    ret = -EINVAL;
-    if (optlen < 0)
-        goto out;
-
-    if (optlen > DOMAIN_NAME_LEN_NAP - 1)
-        optlen = DOMAIN_NAME_LEN_NAP - 1;
-
-    memset(domain, 0, sizeof(domain));
-
-    ret = -EFAULT;
-    if (copy_from_user(domain, optval, optlen))
-        goto out;
-    memcpy(sk->domain_name,domain, sizeof(sk->domain_name)-1);
-    ret = 0;
-
-out:
-    return ret;
-}
-
-/** The function sets the uid associated with the dns socket. **/
-static int sock_set_dns_uid(struct sock *sk, char __user *optval, int optlen)
-{
-	int ret = -EADDRNOTAVAIL;
-
-	if (optlen < 0)
-		goto out;
-
-	if (optlen == sizeof(uid_t)) {
-		uid_t dns_uid;
-		ret = -EFAULT;
-		if (copy_from_user(&dns_uid, optval, sizeof(dns_uid)))
-			goto out;
-		memcpy(&sk->knox_dns_uid, &dns_uid, sizeof(sk->knox_dns_uid));
-		ret = 0;
-    }
-
-out:
-	return ret;
-}
-
-/** The function sets the pid and the process name associated with the dns socket. **/
-static int sock_set_dns_pid(struct sock *sk, char __user *optval, int optlen)
-{
-	int ret = -EADDRNOTAVAIL;
-	struct pid *pid_struct = NULL;
-	struct task_struct *task = NULL;
-	int process_returnValue = -1;
-	char full_process_name[PROCESS_NAME_LEN_NAP] = {0};
-
-	if (optlen < 0)
-		goto out;
-
-	if (optlen == sizeof(pid_t)) {
-		pid_t dns_pid;
-		ret = -EFAULT;
-		if (copy_from_user(&dns_pid, optval, sizeof(dns_pid)))
-			goto out;
-		memcpy(&sk->knox_dns_pid, &dns_pid, sizeof(sk->knox_dns_pid));
-		if(check_ncm_flag()) {
-			pid_struct = find_get_pid(dns_pid);
-			if (pid_struct != NULL) {
-				task = pid_task(pid_struct,PIDTYPE_PID);
-				if (task != NULL) {
-					process_returnValue = get_cmdline(task, full_process_name, sizeof(full_process_name)-1);
-					if (process_returnValue > 0) {
-						memcpy(sk->dns_process_name, full_process_name, sizeof(sk->dns_process_name)-1);
-					} else {
-						memcpy(sk->dns_process_name, task->comm, sizeof(task->comm)-1);
-					}
-				}
-			}
-		}
-		ret = 0;
-	}
-
-out:
-	return ret;
-}
-
-/* END_OF_KNOX_NPA */
-
 static inline void sock_valbool_flag(struct sock *sk, int bit, int valbool)
 {
 	if (valbool)
@@ -785,15 +698,6 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
 
 	if (optname == SO_BINDTODEVICE)
 		return sock_setbindtodevice(sk, optval, optlen);
-
-	/* START_OF_KNOX_NPA */
-	if (optname == SO_SET_DOMAIN_NAME)
-		return sock_set_domain_name(sk, optval, optlen);
-	if (optname == SO_SET_DNS_UID)
-		return sock_set_dns_uid(sk, optval, optlen);
-	if (optname == SO_SET_DNS_PID)
-		return sock_set_dns_pid(sk, optval, optlen);
-	/* END_OF_KNOX_NPA */
 
 	if (optlen < sizeof(int))
 		return -EINVAL;
@@ -1013,6 +917,45 @@ set_rcvbuf:
 		}
 		break;
 
+	case SO_ATTACH_BPF:
+		ret = -EINVAL;
+		if (optlen == sizeof(u32)) {
+			u32 ufd;
+
+			ret = -EFAULT;
+			if (copy_from_user(&ufd, optval, sizeof(ufd)))
+				break;
+
+			ret = sk_attach_bpf(ufd, sk);
+		}
+		break;
+
+	case SO_ATTACH_REUSEPORT_CBPF:
+		ret = -EINVAL;
+		if (optlen == sizeof(struct sock_fprog)) {
+			struct sock_fprog fprog;
+
+			ret = -EFAULT;
+			if (copy_from_user(&fprog, optval, sizeof(fprog)))
+				break;
+
+			ret = sk_reuseport_attach_filter(&fprog, sk);
+		}
+		break;
+
+	case SO_ATTACH_REUSEPORT_EBPF:
+		ret = -EINVAL;
+		if (optlen == sizeof(u32)) {
+			u32 ufd;
+
+			ret = -EFAULT;
+			if (copy_from_user(&ufd, optval, sizeof(ufd)))
+				break;
+
+			ret = sk_reuseport_attach_bpf(ufd, sk);
+		}
+		break;
+
 	case SO_DETACH_FILTER:
 		ret = sk_detach_filter(sk);
 		break;
@@ -1082,6 +1025,10 @@ set_rcvbuf:
 					 sk->sk_max_pacing_rate);
 		break;
 
+	case SO_INCOMING_CPU:
+		sk->sk_incoming_cpu = val;
+		break;
+
 	default:
 		ret = -ENOPROTOOPT;
 		break;
@@ -1112,6 +1059,7 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
 
 	union {
 		int val;
+		u64 val64;
 		struct linger ling;
 		struct timeval tm;
 	} v;
@@ -1338,6 +1286,16 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
 		v.val = sk->sk_max_pacing_rate;
 		break;
 
+	case SO_INCOMING_CPU:
+		v.val = sk->sk_incoming_cpu;
+		break;
+
+	case SO_COOKIE:
+		lv = sizeof(u64);
+		if (len < lv)
+			return -EINVAL;
+		v.val64 = sock_gen_cookie(sk);
+		break;
 	default:
 		return -ENOPROTOOPT;
 	}
@@ -1457,6 +1415,7 @@ static void sk_prot_free(struct proto *prot, struct sock *sk)
 	owner = prot->owner;
 	slab = prot->slab;
 
+	cgroup_sk_free(&sk->sk_cgrp_data);
 	security_sk_free(sk);
 	if (slab != NULL)
 		kmem_cache_free(slab, sk);
@@ -1464,17 +1423,6 @@ static void sk_prot_free(struct proto *prot, struct sock *sk)
 		kfree(sk);
 	module_put(owner);
 }
-
-#if IS_ENABLED(CONFIG_CGROUP_NET_PRIO)
-void sock_update_netprioidx(struct sock *sk)
-{
-	if (in_interrupt())
-		return;
-
-	sk->sk_cgrp_prioidx = task_netprioidx(current);
-}
-EXPORT_SYMBOL_GPL(sock_update_netprioidx);
-#endif
 
 /**
  *	sk_alloc - All socket objects are allocated here
@@ -1488,74 +1436,17 @@ struct sock *sk_alloc(struct net *net, int family, gfp_t priority,
 {
 	struct sock *sk;
 
-	/* START_OF_KNOX_NPA */
-	struct pid *pid_struct = NULL;
-	struct task_struct *task = NULL;
-	int process_returnValue = -1;
-	char full_process_name[PROCESS_NAME_LEN_NAP] = {0};
-	struct pid *parent_pid_struct = NULL;
-	struct task_struct *parent_task = NULL;
-	int parent_returnValue = -1;
-	char full_parent_process_name[PROCESS_NAME_LEN_NAP] = {0};
-	/* END_OF_KNOX_NPA */
-
 	sk = sk_prot_alloc(prot, priority | __GFP_ZERO, family);
 	if (sk) {
 		sk->sk_family = family;
-		/* START_OF_KNOX_NPA */
-		/* assign values to members of sock structure when npa flag is present */
-		sk->knox_uid = current->cred->uid.val;
-		sk->knox_pid = current->tgid;
-		sk->knox_puid = 0;
-		sk->knox_ppid = 0;
-		sk->knox_dns_uid = 0;
-		sk->knox_dns_pid = 0;
-		memset(sk->process_name,'\0',sizeof(sk->process_name));
-		memset(sk->parent_process_name,'\0',sizeof(sk->parent_process_name));
-		memset(sk->dns_process_name,'\0',sizeof(sk->dns_process_name));
-		memset(sk->domain_name,'\0',sizeof(sk->domain_name));
-		if (check_ncm_flag()) {
-			pid_struct = find_get_pid(current->tgid);
-			if (pid_struct != NULL) {
-				task = pid_task(pid_struct, PIDTYPE_PID);
-				if (task != NULL) {
-					process_returnValue = get_cmdline(task, full_process_name, sizeof(full_process_name)-1);
-					if (process_returnValue > 0) {
-						memcpy(sk->process_name, full_process_name, sizeof(sk->process_name)-1);
-					} else {
-						memcpy(sk->process_name, task->comm, sizeof(task->comm)-1);
-					}
-					if (task->parent != NULL) {
-						parent_pid_struct = find_get_pid(task->parent->tgid);
-						if (parent_pid_struct != NULL) {
-							parent_task = pid_task(parent_pid_struct, PIDTYPE_PID);
-							if (parent_task != NULL) {
-								parent_returnValue = get_cmdline(parent_task, full_parent_process_name, sizeof(full_parent_process_name)-1);
-								if (parent_returnValue > 0) {
-									memcpy(sk->parent_process_name, full_parent_process_name, sizeof(sk->parent_process_name)-1);
-								} else {
-									memcpy(sk->parent_process_name, parent_task->comm, sizeof(parent_task->comm)-1);
-								}
-								sk->knox_puid = parent_task->cred->uid.val;
-								sk->knox_ppid = parent_task->tgid;
-							}
-						}
-					}
-				}
-			}
-		}
-		/* END_OF_KNOX_NPA */
-		/*
-		 * See comment in struct sock definition to understand
-		 * why we need sk_prot_creator -acme
-		 */
 		sk->sk_prot = sk->sk_prot_creator = prot;
 		sock_lock_init(sk);
 		sock_net_set(sk, get_net(net));
 		atomic_set(&sk->sk_wmem_alloc, 1);
 
-		sock_update_classid(sk);
-		sock_update_netprioidx(sk);
+		cgroup_sk_alloc(&sk->sk_cgrp_data);
+		sock_update_classid(&sk->sk_cgrp_data);
+		sock_update_netprioidx(&sk->sk_cgrp_data);
 	}
 
 	return sk;
@@ -1575,6 +1466,8 @@ static void __sk_free(struct sock *sk)
 		sk_filter_uncharge(sk, filter);
 		RCU_INIT_POINTER(sk->sk_filter, NULL);
 	}
+	if (rcu_access_pointer(sk->sk_reuseport_cb))
+		reuseport_detach_sock(sk);
 
 	sock_disable_timestamp(sk, SK_FLAGS_TIMESTAMP);
 
@@ -1682,6 +1575,8 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 		newsk->sk_userlocks	= sk->sk_userlocks & ~SOCK_BINDPORT_LOCK;
 
 		sock_reset_flag(newsk, SOCK_DONE);
+		cgroup_sk_clone(&newsk->sk_cgrp_data);
+
 		skb_queue_head_init(&newsk->sk_error_queue);
 
 		filter = rcu_dereference_protected(newsk->sk_filter, 1);
@@ -1707,9 +1602,15 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 			newsk = NULL;
 			goto out;
 		}
+		RCU_INIT_POINTER(newsk->sk_reuseport_cb, NULL);
 
 		newsk->sk_err	   = 0;
 		newsk->sk_priority = 0;
+		newsk->sk_incoming_cpu = raw_smp_processor_id();
+		atomic64_set(&newsk->sk_cookie, 0);
+
+		cgroup_sk_alloc(&newsk->sk_cgrp_data);
+
 		/*
 		 * Before updating sk_refcnt, we must commit prior changes to memory
 		 * (Documentation/RCU/rculist_nulls.txt for details)
@@ -2340,6 +2241,27 @@ int sock_no_mmap(struct file *file, struct socket *sock, struct vm_area_struct *
 }
 EXPORT_SYMBOL(sock_no_mmap);
 
+/*
+ * When a file is received (via SCM_RIGHTS, etc), we must bump the
+ * various sock-based usage counts.
+ */
+void __receive_sock(struct file *file)
+{
+	struct socket *sock;
+	int error;
+
+	/*
+	 * The resulting value of "error" is ignored here since we only
+	 * need to take action when the file is a socket and testing
+	 * "sock" for NULL is sufficient.
+	 */
+	sock = sock_from_file(file, &error);
+	if (sock) {
+		sock_update_netprioidx(&sock->sk->sk_cgrp_data);
+		sock_update_classid(&sock->sk->sk_cgrp_data);
+	}
+}
+
 ssize_t sock_no_sendpage(struct socket *sock, struct page *page, int offset, size_t size, int flags)
 {
 	ssize_t res;
@@ -2508,6 +2430,7 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 
 	sk->sk_max_pacing_rate = ~0U;
 	sk->sk_pacing_rate = ~0U;
+	sk->sk_incoming_cpu = -1;
 	/*
 	 * Before updating sk_refcnt, we must commit prior changes to memory
 	 * (Documentation/RCU/rculist_nulls.txt for details)
