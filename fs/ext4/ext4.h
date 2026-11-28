@@ -1212,7 +1212,7 @@ struct ext4_super_block {
 	__u8	s_encrypt_algos[4];	/* Encryption algorithms in use  */
 	__u8	s_encrypt_pw_salt[16];	/* Salt used for string2key algorithm */
 	__le32	s_lpf_ino;		/* Location of the lost+found inode */
-	__le32	s_reserved[100];	/* Padding to the end of the block */
+	__le32	s_reserved[94];		/* Padding to the end of the block */
 	__le32	s_sec_magic;		/* flag for reserved inodes */
 	__le32	s_reserved2[5];		/* Padding to the end of the block */
 	__le32	s_checksum;		/* crc32c(superblock) */
