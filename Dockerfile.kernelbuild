@@ -1,8 +1,8 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 LABEL description="Samsung Exynos7870 kernel build environment"
 LABEL kernel="Linux 3.18.140"
-LABEL toolchain="Linaro GCC 7.5 (github.com/rokibhasansagar/linaro-toolchain-latest)"
+LABEL toolchain="Arm GNU Toolchain 12.3 (github.com/sexynos7870/android_prebuilts_gcc_linux-x86_aarch64)"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     bc \
     bison \
     build-essential \
+    cpio \
     curl \
     flex \
     git \
@@ -25,30 +26,30 @@ RUN apt-get update && apt-get install -y \
     zip \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Cross-compiler: Linaro GCC 7.5 (aarch64-linux-gnu) ───────────────────────
-# branch latest-7 = gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu
+# ── Cross-compiler: Arm GNU 12.3 (aarch64-none-linux-gnu) ─────────────────────
 RUN git clone --depth=1 \
-    -b latest-7 \
-    https://github.com/rokibhasansagar/linaro-toolchain-latest.git \
-    /opt/gcc-linaro-7.5
+    -b 12.3_rel1 \
+    https://github.com/sexynos7870/android_prebuilts_gcc_linux-x86_aarch64.git \
+    /opt/arm-gnu-12.3
 
 # ── Environment ───────────────────────────────────────────────────────────────
-ENV PATH="/opt/gcc-linaro-7.5/bin:${PATH}"
-ENV CROSS_COMPILE=/opt/gcc-linaro-7.5/bin/aarch64-linux-gnu-
+ENV PATH="/opt/arm-gnu-12.3/bin:${PATH}"
+ENV CROSS_COMPILE=/opt/arm-gnu-12.3/bin/aarch64-none-linux-gnu-
 ENV ARCH=arm64
-ENV ANDROID_MAJOR_VERSION=o
-ENV ANDROID_PLATFORM_VERSION=8.1.0
+ENV DEFCONFIG=exynos7870-j7xelte_defconfig
 
 WORKDIR /kernel
 
 # ── Default command: build the kernel ────────────────────────────────────────
 # The kernel source must be bind-mounted to /kernel.
-# Produces:  /kernel/out/arch/arm64/boot/Image.gz-dtb
+# Produces:  /kernel/out/arch/arm64/boot/Image
 #            /kernel/out/arch/arm64/boot/dtb.img
 CMD bash -c "\
-    echo '==> Toolchain: $(aarch64-linux-gnu-gcc --version | head -1)' && \
-    make O=out ARCH=arm64 exynos7870-j7xelte_defconfig && \
+    mkdir -p out && \
+    echo '==> Toolchain: \$(aarch64-none-linux-gnu-gcc --version | head -1)' && \
+    echo '==> Defconfig: ${DEFCONFIG}' && \
+    make O=out ARCH=arm64 ${DEFCONFIG} 2>&1 | tee out/build.log && \
     make O=out ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} \
-         -j\$(nproc) Image.gz-dtb dtb.img 2>&1 | tee out/build.log && \
+         -j\$(nproc) Image dtb.img 2>&1 | tee -a out/build.log && \
     echo '==> Done!' && \
-    ls -lh out/arch/arm64/boot/Image.gz-dtb out/arch/arm64/boot/dtb.img 2>/dev/null"
+    ls -lh out/arch/arm64/boot/Image out/arch/arm64/boot/dtb.img 2>/dev/null"
